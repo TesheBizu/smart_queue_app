@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "406508716506",
+    "project_id": "smart-queue-app-b0d5a",
+    "storage_bucket": "smart-queue-app-b0d5a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:406508716506:android:4b64c2c51eed59a6bf00e3",
+        "android_client_info": {
+          "package_name": "com.example.flut_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSqv2yGG_UPD4fbgVuWGmCS1EmPgCk-iI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:406508716506:android:e1f81ac96b040b8bbf00e3",
+        "android_client_info": {
+          "package_name": "com.example.smartqueue"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSqv2yGG_UPD4fbgVuWGmCS1EmPgCk-iI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
