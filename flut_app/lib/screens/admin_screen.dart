@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/services/firebase_service.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
@@ -18,8 +19,8 @@ class AdminScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
               ),
-              onPressed: () {
-                // TODO: Call next ticket
+              onPressed: () async {
+                await FirebaseService.callNext("D3pDxoX27kJErjrRU3jB");
               },
               child: const Text("Call Next Ticket"),
             ),
@@ -30,8 +31,8 @@ class AdminScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
               ),
-              onPressed: () {
-                // TODO: Skip ticket
+              onPressed: () async {
+                await FirebaseService.callNext("D3pDxoX27kJErjrRU3jB");
               },
               child: const Text("Skip Ticket"),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/ticket_provider.dart';
+import '../core/services/firebase_service.dart';
 
 class ProviderScreen extends ConsumerWidget {
   const ProviderScreen({super.key});
@@ -36,8 +37,8 @@ class ProviderScreen extends ConsumerWidget {
                       child: ListTile(
                         title: Text("Ticket #${t.number}"),
                         trailing: ElevatedButton(
-                          onPressed: () {
-                            // TODO: finish ticket
+                          onPressed: () async {
+                            await FirebaseService.finishTicket(t.id);
                           },
                           child: const Text("Finish"),
                         ),
@@ -56,9 +57,12 @@ class ProviderScreen extends ConsumerWidget {
                       child: ListTile(
                         title: Text("Ticket #${t.number}"),
                         trailing: ElevatedButton(
-                          onPressed: () {
-                            // TODO: claim ticket
-                          },
+                          onPressed: () async {
+                            await FirebaseService.claimTicket(
+                              t.id, 
+                              "Provider1",
+                             );
+                           },
                           child: const Text("Start"),
                         ),
                       ),
