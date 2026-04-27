@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'provider_screen.dart';
 import 'admin_screen.dart';
+import 'user_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,17 @@ class HomeScreen extends StatelessWidget {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const UserScreen(),
+      ),
+    );
+  },
+  child: const Text("Get Ticket (User)"),
+),
           FloatingActionButton(
             heroTag: "admin",
             onPressed: () {

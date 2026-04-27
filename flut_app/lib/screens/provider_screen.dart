@@ -1,79 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/ticket_provider.dart';
-import '../core/services/firebase_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/services/ticket_service.dart';
 
-class ProviderScreen extends ConsumerWidget {
+class ProviderScreen extends StatelessWidget {
   const ProviderScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ticketsAsync = ref.watch(ticketsProvider);
-
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Provider Dashboard"),
-        centerTitle: true,
-      ),
-      body: ticketsAsync.when(
-        data: (tickets) {
-          final inService =
-              tickets.where((t) => t.status == "in_service").toList();
+      appBar: AppBar(title: const Text("Provider Dashboard")),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('tickets')
+            .orderBy('createdAt')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final tickets = snapshot.data!.docs;
+
           final called =
-              tickets.where((t) => t.status == "called").toList();
+              tickets.where((t) => t['status'] == 'called').toList();
 
-          return Padding(
+          final inService =
+              tickets.where((t) => t['status'] == 'in_service').toList();
+
+          return ListView(
             padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("🟢 In Service",
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            children: [
+              const Text("🟡 Called Tickets",
+                  style: TextStyle(fontSize: 18)),
 
-                const SizedBox(height: 10),
+              if (called.isEmpty)
+                const Text("No called tickets"),
 
-                ...inService.map((t) => Card(
-                      child: ListTile(
-                        title: Text("Ticket #${t.number}"),
-                        trailing: ElevatedButton(
-                          onPressed: () async {
-                            await FirebaseService.finishTicket(t.id);
-                          },
-                          child: const Text("Finish"),
-                        ),
+              ...called.map((t) => Card(
+                    child: ListTile(
+                      title: Text("Ticket #${t['number']}"),
+                      trailing: ElevatedButton(
+                        onPressed: () async {
+                          await TicketService.claimTicket(
+                              t.id, "provider1");
+                        },
+                        child: const Text("Start"),
                       ),
-                    )),
+                    ),
+                  )),
 
-                const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-                const Text("🟡 Waiting (Called)",
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("🟢 In Service",
+                  style: TextStyle(fontSize: 18)),
 
-                const SizedBox(height: 10),
+              if (inService.isEmpty)
+                const Text("No active tickets"),
 
-                ...called.map((t) => Card(
-                      child: ListTile(
-                        title: Text("Ticket #${t.number}"),
-                        trailing: ElevatedButton(
-                          onPressed: () async {
-                            await FirebaseService.claimTicket(
-                              t.id, 
-                              "Provider1",
-                             );
-                           },
-                          child: const Text("Start"),
-                        ),
+              ...inService.map((t) => Card(
+                    child: ListTile(
+                      title: Text("Ticket #${t['number']}"),
+                      trailing: ElevatedButton(
+                        onPressed: () async {
+                          await TicketService.finishTicket(t.id);
+                        },
+                        child: const Text("Finish"),
                       ),
-                    )),
-              ],
-            ),
+                    ),
+                  )),
+            ],
           );
         },
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text("Error: $e")),
       ),
     );
   }
