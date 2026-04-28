@@ -6,15 +6,14 @@ class TicketService {
   // --------------------------
   // USER: CREATE TICKET
   // --------------------------
- static Future<void> createTicket({
+ static Future<int?> createTicket({
   required String serviceId,
   required String userId,
 }) async {
   final db = FirebaseFirestore.instance;
-
   final counterRef = db.collection('queues').doc(serviceId);
 
-  await db.runTransaction((tx) async {
+  return await db.runTransaction((tx) async {
     final snapshot = await tx.get(counterRef);
 
     int nextNumber = 1;
@@ -25,6 +24,7 @@ class TicketService {
 
     tx.set(counterRef, {
       'currentNumber': nextNumber,
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     final ticketRef = db.collection('tickets').doc();
@@ -37,6 +37,8 @@ class TicketService {
       'assignedProviderId': null,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    return nextNumber; // 🔥 RETURN THIS
   });
 }
   // --------------------------

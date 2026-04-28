@@ -23,30 +23,21 @@ class _AdminScreenState extends State<AdminScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 🔥 SERVICE SELECTOR (DYNAMIC)
+            // 🔥 SERVICE SELECTOR
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('services')
                   .where('isActive', isEqualTo: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Text("Error: ${snapshot.error}");
-                }
-
                 if (!snapshot.hasData) {
                   return const CircularProgressIndicator();
                 }
 
                 final services = snapshot.data!.docs;
 
-                if (services.isEmpty) {
-                  return const Text("No services available");
-                }
-
-                selectedServiceId ??= services.first.id;
-
                 return DropdownButton<String>(
+                  hint: const Text("Select a service"),
                   value: selectedServiceId,
                   isExpanded: true,
                   items: services.map((doc) {
@@ -57,78 +48,34 @@ class _AdminScreenState extends State<AdminScreen> {
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      selectedServiceId = value!;
+                      selectedServiceId = value;
                     });
                   },
                 );
               },
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
 
             // 🔥 CALL NEXT BUTTON
             ElevatedButton(
-              onPressed: () async {
-                if (selectedServiceId == null) return;
-
-                await TicketService.callNext(selectedServiceId!);
-              },
+              onPressed: selectedServiceId == null
+                  ? null
+                  : () async {
+                      await TicketService.callNext(selectedServiceId!);
+                    },
               child: const Text("Call Next Ticket"),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
 
             const Divider(),
 
-            const Text(
-              "Queue Overview",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 10),
-
-            // 🔥 LIVE QUEUE VIEW
+            // 🔥 MAIN CONTENT
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('tickets')
-                    .where('serviceId', isEqualTo: selectedServiceId)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(child: Text("Error: ${snapshot.error}"));
-                  }
-
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final tickets = snapshot.data!.docs;
-
-                  if (tickets.isEmpty) {
-                    return const Center(child: Text("No tickets"));
-                  }
-
-                  // 🔥 Sort tickets by number
-                  tickets.sort((a, b) =>
-                      (a['number'] as int).compareTo(b['number'] as int));
-
-                  return ListView.builder(
-                    itemCount: tickets.length,
-                    itemBuilder: (context, index) {
-                      final t = tickets[index];
-
-                      return Card(
-                        child: ListTile(
-                          title: Text("Ticket #${t['number']}"),
-                          subtitle: Text("Status: ${t['status']}"),
-                          trailing: _buildStatusIcon(t['status']),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+              child: selectedServiceId == null
+                  ? _buildWelcomeUI()
+                  : _buildDashboard(),
             ),
           ],
         ),
@@ -136,7 +83,158 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  // 🔥 STATUS ICON HELPER
+  // =========================
+  // 🟢 WELCOME UI
+  // =========================
+  Widget _buildWelcomeUI() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.dashboard, size: 80, color: Colors.blue),
+          SizedBox(height: 20),
+          Text(
+            "Welcome Admin 👋",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 10),
+          Text("Select a service to manage queue"),
+        ],
+      ),
+    );
+  }
+
+  // =========================
+  // 🔵 DASHBOARD UI
+  // =========================
+  Widget _buildDashboard() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('tickets')
+          .where('serviceId', isEqualTo: selectedServiceId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final tickets = snapshot.data!.docs;
+
+        if (tickets.isEmpty) {
+          return const Center(child: Text("No tickets for this service"));
+        }
+
+        // 🔥 SORT ALL TICKETS
+        tickets.sort((a, b) =>
+            (a['number'] as int).compareTo(b['number'] as int));
+
+        // 🔥 FILTER GROUPS
+        final waiting = tickets
+            .where((t) => t['status'] == 'waiting')
+            .toList();
+
+        final inService = tickets
+            .where((t) => t['status'] == 'in_service')
+            .toList();
+
+        // 🔥 SORT WAITING
+        waiting.sort((a, b) =>
+            (a['number'] as int).compareTo(b['number'] as int));
+
+        // 🔥 METRICS
+        final totalWaiting = waiting.length;
+        final currentServing =
+            inService.isNotEmpty ? inService.first : null;
+        final nextTicket =
+            waiting.isNotEmpty ? waiting.first : null;
+
+        return Column(
+          children: [
+            // =========================
+            // 📊 SUMMARY CARDS
+            // =========================
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatCard(
+                    "Waiting", totalWaiting.toString(), Icons.people),
+                _buildStatCard(
+                    "Serving",
+                    currentServing != null
+                        ? "#${currentServing['number']}"
+                        : "-",
+                    Icons.person),
+                _buildStatCard(
+                    "Next",
+                    nextTicket != null
+                        ? "#${nextTicket['number']}"
+                        : "-",
+                    Icons.skip_next),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            const Divider(),
+
+            const Text(
+              "Queue List",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 10),
+
+            // =========================
+            // 📋 QUEUE LIST
+            // =========================
+            Expanded(
+              child: ListView.builder(
+                itemCount: tickets.length,
+                itemBuilder: (context, index) {
+                  final t = tickets[index];
+
+                  return Card(
+                    child: ListTile(
+                      title: Text("Ticket #${t['number']}"),
+                      subtitle: Text("Status: ${t['status']}"),
+                      trailing: _buildStatusIcon(t['status']),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // =========================
+  // 📦 STAT CARD
+  // =========================
+  Widget _buildStatCard(String title, String value, IconData icon) {
+    return Card(
+      elevation: 3,
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Icon(icon, size: 30),
+            const SizedBox(height: 5),
+            Text(value,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(title),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // 🎯 STATUS ICON
+  // =========================
   Widget _buildStatusIcon(String status) {
     switch (status) {
       case 'waiting':
