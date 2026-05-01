@@ -10,7 +10,7 @@ A Flutter + Firebase mobile application that manages queues for clinics, banks, 
 
 ## Tech Stack
 - Flutter (Dart)
-- Firebase (Auth, Firestore, Cloud Functions)
+- Firebase (Auth, Firestore)
 - Riverpod
 
 ## System Design
