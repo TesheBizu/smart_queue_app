@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/services/auth_service.dart';
 
 class ProviderScreen extends StatefulWidget {
   const ProviderScreen({super.key});
@@ -15,7 +16,17 @@ class _ProviderScreenState extends State<ProviderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Provider Dashboard")),
+      appBar: AppBar(
+        title: const Text("Provider Dashboard"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await AuthService.logout();
+              },
+              ),
+              ],
+              ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -66,13 +77,13 @@ class _ProviderScreenState extends State<ProviderScreen> {
   }
 
   // =========================
-  // 🟢 WELCOME UI
+  // 🟢 WELCOME
   // =========================
   Widget _buildWelcome() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Icon(Icons.person, size: 80, color: Colors.green),
           SizedBox(height: 20),
           Text(
@@ -96,46 +107,75 @@ class _ProviderScreenState extends State<ProviderScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const CircularProgressIndicator();
+          return const Center(child: CircularProgressIndicator());
         }
 
         final tickets = snapshot.data!.docs;
 
-        // 🔥 FILTER
+        // 🔥 FILTER GROUPS
         final waiting =
             tickets.where((t) => t['status'] == 'waiting').toList();
+
+        final called =
+            tickets.where((t) => t['status'] == 'called').toList();
 
         final inService =
             tickets.where((t) => t['status'] == 'in_service').toList();
 
+        // 🔥 SORT
         waiting.sort((a, b) =>
             (a['number'] as int).compareTo(b['number'] as int));
 
+        called.sort((a, b) =>
+            (a['number'] as int).compareTo(b['number'] as int));
+
+        // 🔥 LOGIC
         final current = inService.isNotEmpty ? inService.first : null;
-        final next = waiting.isNotEmpty ? waiting.first : null;
+        final next = called.isNotEmpty
+            ? called.first
+            : null; // 🔥 FROM CALLED ONLY
+
+        final noTickets =
+            waiting.isEmpty && called.isEmpty && current == null;
 
         return Column(
           children: [
+            // =========================
             // 📊 STATS
+            // =========================
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _card("Waiting", "${waiting.length}", Icons.people),
+                _card("Called", "${called.length}", Icons.notifications),
                 _card(
                     "Serving",
                     current != null ? "#${current['number']}" : "-",
                     Icons.person),
-                _card(
-                    "Next",
-                    next != null ? "#${next['number']}" : "-",
-                    Icons.skip_next),
               ],
             ),
 
             const SizedBox(height: 20),
 
-            // 🔥 ACTION BUTTONS
-            if (next != null && current == null)
+            // =========================
+            // 🔥 NO TICKETS
+            // =========================
+            if (noTickets)
+              const Text(
+                "🎉 Tickets have ended",
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green),
+              ),
+
+            // =========================
+            // 🔥 START FROM CALLED
+            // =========================
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children:[
+            if (next != null)
               ElevatedButton(
                 onPressed: () async {
                   await next.reference.update({
@@ -147,6 +187,9 @@ class _ProviderScreenState extends State<ProviderScreen> {
                 child: Text("Start Ticket #${next['number']}"),
               ),
 
+            // =========================
+            // 🔥 FINISH CURRENT
+            // =========================
             if (current != null)
               ElevatedButton(
                 onPressed: () async {
@@ -157,6 +200,8 @@ class _ProviderScreenState extends State<ProviderScreen> {
                 },
                 child: Text("Finish Ticket #${current['number']}"),
               ),
+            ],
+          ),
 
             const SizedBox(height: 20),
 
@@ -164,7 +209,9 @@ class _ProviderScreenState extends State<ProviderScreen> {
 
             const Text("Queue"),
 
-            // 🔥 LIST
+            // =========================
+            // 📋 LIST
+            // =========================
             Expanded(
               child: ListView.builder(
                 itemCount: tickets.length,
@@ -184,6 +231,9 @@ class _ProviderScreenState extends State<ProviderScreen> {
     );
   }
 
+  // =========================
+  // 📦 CARD
+  // =========================
   Widget _card(String title, String value, IconData icon) {
     return Card(
       child: Padding(

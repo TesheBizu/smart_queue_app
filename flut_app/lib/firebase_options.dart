@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'smart-queue-app-b0d5a.firebasestorage.app',
     measurementId: 'G-05Z5TW3GR4',
   );
+
 }

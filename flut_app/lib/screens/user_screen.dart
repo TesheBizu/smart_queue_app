@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/services/ticket_service.dart';
+import '../core/services/auth_service.dart';
 
 class UserScreen extends StatefulWidget {
   const UserScreen({super.key});
@@ -11,7 +12,7 @@ class UserScreen extends StatefulWidget {
 
 class _UserScreenState extends State<UserScreen> {
   String? selectedServiceId;
-  final String userId = "user1";
+  final String userId = "FirebaseAuth.instance.currentUser!.uid";
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +20,15 @@ class _UserScreenState extends State<UserScreen> {
       appBar: AppBar(
         title: const Text("Smart Queue"),
         centerTitle: true,
-      ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await AuthService.logout();
+              },
+              ),
+              ],
+              ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
